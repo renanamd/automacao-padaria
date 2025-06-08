@@ -39,7 +39,7 @@ modal = Modal(
 col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("📝 Gerar Lista de Pedidos"):   
+    if st.button("📝 Gerar Lista de Pedidos", type="primary"):   
         modal.open()
         
 with col2:
