@@ -244,42 +244,69 @@ def gerar_html(tabela_html):
     
     return html
     
-def html_to_pdf(html: str):
+# def html_to_pdf(html: str):
+       
+#     options = {
+#     "orientation": "Landscape"
+#     }
     
-    options = {
-    "orientation": "Landscape"
+#     config = pdfkit.configuration(
+#         wkhtmltopdf='/wkhtmltopdf.exe'
+#     )
+    
+#     try:
+#         # aqui retorna um bool e escreve o arquivo em output_path
+#         pdf = pdfkit.from_string(html, "relatorio_pedidos.pdf", configuration=config, options=options)
+#         return pdf
+#     except Exception as e:
+#         print(f">> Erro ao gerar PDF: {e}")
+#         return []
+    
+def html_to_pdf_api(html: str, output_path: str):
+    url = "https://yakpdf.p.rapidapi.com/pdf"
+    payload = {
+        "source": { "html": html },
+        "pdf": { "format": "A4", "scale": 1, "printBackground": True, "landscape":True},
+        "wait": { "for": "navigation", "waitUntil": "load", "timeout": 2500 }
     }
-    
-    config = pdfkit.configuration(
-        wkhtmltopdf='/wkhtmltopdf.exe'
-    )
-    
-    try:
-        # aqui retorna um bool e escreve o arquivo em output_path
-        pdf = pdfkit.from_string(html, "relatorio_pedidos.pdf", configuration=config, options=options)
-        return pdf
-    except Exception as e:
-        print(f">> Erro ao gerar PDF: {e}")
-        return []
+    headers = {
+        "x-rapidapi-key": "6ea4cacd39mshb645c8bd387bed2p1fd1fcjsn40c7b4eb77e2",
+        "x-rapidapi-host": "yakpdf.p.rapidapi.com",
+        "Content-Type": "application/json",
+        "Accept": "application/pdf"        # <— às vezes necessário
+    }
 
-def baixar_html_to_pdf(html: str) -> bytes | None:
+    response = requests.post(url, json=payload, headers=headers, stream=True)
+
+
+    # 2) Em caso de erro, imprime o corpo:
+    if response.status_code != 200 or response.headers.get("Content-Type") != "application/pdf":
+        return
+
+    # 3) Gravação binária
+    with open(output_path, "wb") as f:
+        for chunk in response.iter_content(8192):
+            if chunk:
+                f.write(chunk)
+
+# def baixar_html_to_pdf(html: str) -> bytes | None:
     
-    options = {
+#     options = {
         
-    "orientation": "Landscape"
+#     "orientation": "Landscape"
     
-    }
+#     }
     
     
-    path = pdfkit.configuration(wkhtmltopdf=r'C:\Users\Renan Almeida\wkhtmltopdf\bin\wkhtmltopdf.exe')
+#     path = pdfkit.configuration(wkhtmltopdf=r'C:\Users\Renan Almeida\wkhtmltopdf\bin\wkhtmltopdf.exe')
     
-    try:
-        # O segundo parâmetro False faz retornar bytes em vez de arquivo
-        pdf_bytes = pdfkit.from_string(html, False, configuration=path, options=options)
-        return pdf_bytes
-    except Exception as e:
-        print(f">> Erro ao gerar PDF: {e}")
-        return None
+#     try:
+#         # O segundo parâmetro False faz retornar bytes em vez de arquivo
+#         pdf_bytes = pdfkit.from_string(html, False, configuration=path, options=options)
+#         return pdf_bytes
+#     except Exception as e:
+#         print(f">> Erro ao gerar PDF: {e}")
+#         return None
 
 
 
@@ -367,7 +394,7 @@ if modal.is_open():
                 with st.spinner("Gerando o PDF para download..."):
                     tabela_html = gerar_tabela_html(df_pedidos)
                     html_geral = gerar_html(tabela_html)                    
-                    gerar_pdf = baixar_html_to_pdf(html_geral)
+                    gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
                     
                     if gerar_pdf is None:
                         st.error("❌ Não foi possível realizar o download")
@@ -392,7 +419,7 @@ if modal.is_open():
                 with st.spinner("Enviando email para impressora..."):
                     tabela_html = gerar_tabela_html(df_pedidos)
                     html_geral = gerar_html(tabela_html)
-                    gerar_pdf = html_to_pdf(html_geral)
+                    gerar_pdf = html_to_pdf_api(html_geral)
                     impressao = enviar_para_impressao()
                     if impressao:
                         st.success("✅ PDF enviado para impressão!")
