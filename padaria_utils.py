@@ -310,7 +310,7 @@ def enviar_para_impressao() -> bool:
 
 def rodar_fluxo_cobranca_clientes():
     
-    url = "http://localhost:5678/webhook-test/5ecdd0d8-0bc1-4faf-ae7e-d0a5a5a447d9"
+    url = "http://localhost:5678/webhook/5ecdd0d8-0bc1-4faf-ae7e-d0a5a5a447d9"
     
     response = requests.get(url)
     
