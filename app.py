@@ -4,7 +4,7 @@ from streamlit_modal import Modal
 import base64
 from datetime import date
 
-from utils import (
+from padaria_utils import (
     get_pedidos_pooling,
     get_detalhes_pedido,
     parse_order_details,
