@@ -1,0 +1,15 @@
+[theme]
+# cor principal (botões, links, sliders, etc.)
+primaryColor = "#506d2b"
+
+# cor de fundo geral da aplicação
+backgroundColor = "#f2ebde"
+
+# cor de fundo de áreas secundárias (sidebar, caixas)
+secondaryBackgroundColor = "#e8d8a8"
+
+# cor do texto principal
+textColor = "#2b2b2b"
+
+# fonte
+font = "sans serif"
