@@ -251,7 +251,7 @@ def html_to_pdf(html: str):
     }
     
     config = pdfkit.configuration(
-        wkhtmltopdf=r'C:\Users\Renan Almeida\wkhtmltopdf\bin\wkhtmltopdf.exe'
+        wkhtmltopdf='/wkhtmltopdf.exe'
     )
     
     try:
