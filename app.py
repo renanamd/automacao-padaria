@@ -7,28 +7,13 @@ import pandas as pd
 import pdfkit
 import requests
 import yagmail
-from dotenv import load_dotenv
 
-from padaria_utils import (
-    get_pedidos_pooling,
-    get_detalhes_pedido,
-    parse_order_details,
-    montar_tabela_pedidos,
-    gerar_tabela_html,
-    gerar_html,
-    html_to_pdf,
-    enviar_para_impressao,
-    baixar_html_to_pdf,
-    rodar_fluxo_cobranca_clientes
-)
-
-API_POOLING_URL = os.getenv("API_POOLING_URL")
-API_DETALHES_PEDIDO_URL = os.getenv("API_DETALHES_PEDIDO_URL")
-CARDAPIO_API_TOKEN = os.getenv("CARDAPIO_API_TOKEN")
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-PRINTER_EMAIL = os.getenv("PRINTER_EMAIL")
-
+API_POOLING_URL = st.secrets["API_POOLING_URL"]
+API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
+CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
+EMAIL_USER = st.secrets["EMAIL_USER"]
+EMAIL_PASS = st.secrets["EMAIL_PASS"]
+PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
 
 def get_pedidos_pooling(url, token):
     headers = {
@@ -362,7 +347,6 @@ with col2:
             st.error("❌ Falha na execução do fluxo")
 
 if modal.is_open():
-    
     ids = get_pedidos_pooling(API_POOLING_URL, CARDAPIO_API_TOKEN)
     detalhes = get_detalhes_pedido(API_DETALHES_PEDIDO_URL, ids, CARDAPIO_API_TOKEN)
     parsed = [parse_order_details(d) for d in detalhes]
