@@ -15,7 +15,6 @@ CARDAPIO_API_TOKEN = os.getenv("CARDAPIO_API_TOKEN")
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 PRINTER_EMAIL = os.getenv("PRINTER_EMAIL")
-N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
 
 def get_pedidos_pooling(url, token):
     headers = {
