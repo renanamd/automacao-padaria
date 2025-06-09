@@ -1,8 +1,8 @@
 pandas
-pdfkit
 requests
 yagmail
 python-dotenv
 streamlit
 streamlit-modal
 PyYAML
+io

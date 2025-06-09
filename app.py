@@ -1,12 +1,10 @@
-import os
 import streamlit as st
 from streamlit_modal import Modal
-import base64
 from datetime import date, datetime
 import pandas as pd
-import pdfkit
 import requests
 import yagmail
+import io
 
 API_POOLING_URL = st.secrets["API_POOLING_URL"]
 API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
@@ -257,24 +255,6 @@ def gerar_html(tabela_html):
     
     return html
     
-# def html_to_pdf(html: str):
-       
-#     options = {
-#     "orientation": "Landscape"
-#     }
-    
-#     config = pdfkit.configuration(
-#         wkhtmltopdf='/wkhtmltopdf.exe'
-#     )
-    
-#     try:
-#         # aqui retorna um bool e escreve o arquivo em output_path
-#         pdf = pdfkit.from_string(html, "relatorio_pedidos.pdf", configuration=config, options=options)
-#         return pdf
-#     except Exception as e:
-#         print(f">> Erro ao gerar PDF: {e}")
-#         return []
-    
 def html_to_pdf_api(html: str, output_path: str):
     url = "https://yakpdf.p.rapidapi.com/pdf"
     payload = {
@@ -296,55 +276,33 @@ def html_to_pdf_api(html: str, output_path: str):
         return None
     return response.content
 
-    # with open(output_path, "wb") as f:
-    #     for chunk in response.iter_content(8192):
-    #         if chunk:
-    #             f.write(chunk)
 
-# def baixar_html_to_pdf(html: str) -> bytes | None:
-    
-#     options = {
-        
-#     "orientation": "Landscape"
-    
-#     }
-    
-    
-#     path = pdfkit.configuration(wkhtmltopdf=r'C:\Users\Renan Almeida\wkhtmltopdf\bin\wkhtmltopdf.exe')
-    
-#     try:
-#         # O segundo parâmetro False faz retornar bytes em vez de arquivo
-#         pdf_bytes = pdfkit.from_string(html, False, configuration=path, options=options)
-#         return pdf_bytes
-#     except Exception as e:
-#         print(f">> Erro ao gerar PDF: {e}")
-#         return None
-
-
-
-def enviar_para_impressao() -> bool:
-    
-    data_hoje = datetime.now().strftime("%d/%m/%Y")
+def enviar_para_impressao(pdf_bytes: bytes, copies: int) -> bool:
+    data_hoje    = datetime.now().strftime("%d/%m/%Y")
     
     try:
         yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
-        assunto = f"Pedidos Orley Pães - {data_hoje}"
 
-        path = f"C:\\Users\\Renan Almeida\\Desktop\\padaria\\relatorio_pedidos.pdf"
+        for copy in range(1, copies + 2):
+            assunto = f"[Cópia {copy}/{copies + 1}] Pedidos Orley Pães – {data_hoje}"
 
-        with open(path, "rb") as f:
+            # Cria um BytesIO e define o nome do arquivo
+            buf = io.BytesIO(pdf_bytes)
+            buf.name = f"relatorio_pedidos_{copy}.pdf"
+
             yag.send(
                 to="renanalmeida2003@gmail.com",
                 subject=assunto,
-                contents="Segue em anexo os pedidos de hoje.",
-                attachments=[f]
+                contents=f"Segue em anexo a cópia {copy} de {copies + 1} dos pedidos de hoje.",
+                attachments=[buf]
             )
-            
+
         return True
 
     except Exception as e:
         print(f"Falha ao enviar para a impressora: {e}")
         return False
+
 
 def rodar_fluxo_cobranca_clientes():
     
@@ -357,7 +315,6 @@ def rodar_fluxo_cobranca_clientes():
     return status
 
 
-
 st.title("🍞 Orley Pães Artesanais")
 st.subheader("Escolha o que deseja fazer:")
 
@@ -366,24 +323,23 @@ modal = Modal(
     "📝 Revise os Pedidos",
     key="revisar-pedidos",
     padding=20,
-    max_width=800,
+    max_width=900,
 )
 
-col1, col2 = st.columns(2)
 
-with col1:
-    if st.button("📝 Gerar Lista de Pedidos", type="primary"):   
-        modal.open()
+# with col1:
+if st.button("📝 Gerar Lista de Pedidos", type="primary", use_container_width=True):   
+    modal.open()
         
-with col2:
-    if st.button("💸 Cobrança de Clientes",  type="primary"): 
-        with st.spinner("O fluxo está em execução..."):
-            status = rodar_fluxo_cobranca_clientes()
+# with col2:
+if st.button("💸 Cobrança de Clientes",  type="primary", use_container_width=True): 
+    with st.spinner("O fluxo está em execução..."):
+        status = rodar_fluxo_cobranca_clientes()
         
-        if status == 308:
-            st.success("✅ A cobrança automática de clientes foi concluída com sucesso.")  
-        else:  
-            st.error("❌ Falha na execução do fluxo")
+    if status == 308:
+        st.success("✅ A cobrança automática de clientes foi concluída com sucesso.")  
+    else:  
+        st.error("❌ Falha na execução do fluxo")
 
 if modal.is_open():
     ids = get_pedidos_pooling(API_POOLING_URL, CARDAPIO_API_TOKEN)
@@ -402,34 +358,46 @@ if modal.is_open():
 
         with col1:
             st.subheader("📥 Baixar PDF")
-            # if st.button("Gerar e Baixar PDF"):
-            with st.spinner("Gerando o PDF para download..."):
-                    tabela_html = gerar_tabela_html(df_pedidos)
-                    html_geral = gerar_html(tabela_html)                    
-                    gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
-                    hoje = date.today().strftime("%d%m%Y")
-                    nome_pdf = f"relatorio_pedidos_{hoje}.pdf"
+            st.write("Clique no botão abaixo para fazer o download")
+            # with st.spinner("Gerando o PDF para download..."):
+            tabela_html = gerar_tabela_html(df_pedidos)
+            html_geral = gerar_html(tabela_html)                    
+            gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
+            hoje = date.today().strftime("%d/%m/%Y")
+            nome_pdf = f"relatorio_pedidos_{hoje}.pdf"
 
-                    st.download_button(
-                        label="Baixar PDF",
+            botao_clicado = st.download_button(
+                        label="⬇️ Baixar PDF",
                         data=gerar_pdf,
                         file_name=nome_pdf,
                         mime="application/pdf"
-                    )
-                    
-            
+            )
+                 
         with col2:
             st.subheader("🖨️ Enviar para Impressão")
-            if st.button("Enviar para Impressora"):
-                with st.spinner("Enviando e-mail para impressora..."):
-                    tabela_html = gerar_tabela_html(df_pedidos)
-                    html_geral = gerar_html(tabela_html)
-                    gerar_pdf = html_to_pdf_api(html_geral,"relatorio_pedidos.pdf")
-                    impressao = enviar_para_impressao()
-                    if impressao:
-                        st.success("✅ PDF enviado para impressão!")
-                    else:
-                        st.error("❌ Falha ao enviar para a impressora.")
+            st.write("Selecione o número de cópias abaixo")
+            with st.form("form_impressao", border=False):
+                col1, col2 = st.columns(2)
+                with col1:
+                    copies = st.number_input(
+                        label="",
+                        min_value=1,
+                        value=1,
+                        step=1,
+                        label_visibility="collapsed"
+                    )
+                with col2:
+                    submit = st.form_submit_button("Enviar para Impressora")
+                    if submit:
+                        with st.spinner("Enviando e-mail para impressora..."):
+                            tabela_html = gerar_tabela_html(df_pedidos)
+                            html_geral = gerar_html(tabela_html)                    
+                            gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
+                            impressao = enviar_para_impressao(gerar_pdf,copies=copies)
+                            if impressao == True:
+                                st.success(f"✅ PDF enviado para impressão! N° Cópias: {copies}")
+                            else:
+                                st.error("❌ Falha ao enviar para a impressora.")
 
         st.markdown("---")
         if st.button("Fechar"):
