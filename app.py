@@ -130,6 +130,11 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
     registros = []
 
     for parsed in detalhes_pedidos:
+        status     = parsed.get("status", "") or ""
+        
+        if status.lower() != "confirmed":
+            continue
+        
         # 1) Extrai nome e telefone (já filtrados)
         nome_cliente = parsed.get("customer_name", "") or ""
         telefone     = parsed.get("customer_phone", "") or ""
