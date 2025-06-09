@@ -2,4 +2,6 @@
 
 usuarios.yaml
 
+secret.txt
+
 gerar_hash_senha.py

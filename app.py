@@ -6,20 +6,12 @@ import requests
 import yagmail
 from io import BytesIO
 
-# API_POOLING_URL = st.secrets["API_POOLING_URL"]
-# API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
-# CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
-# EMAIL_USER = st.secrets["EMAIL_USER"]
-# EMAIL_PASS = st.secrets["EMAIL_PASS"]
-# PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
-
-API_POOLING_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders"
-API_DETALHES_PEDIDO_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders/"
-CARDAPIO_API_TOKEN = "8d6mRcvSvtkBVCpUCGSrZ8rriFP35Hd2TvGNSnmG"
-EMAIL_USER = "renanalmeida2003@gmail.com"
-EMAIL_PASS = "bojjptclmviqipno"
-PRINTER_EMAIL = "orleypadaria@print.epsonconnect.com"
-
+API_POOLING_URL = st.secrets["API_POOLING_URL"]
+API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
+CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
+EMAIL_USER = st.secrets["EMAIL_USER"]
+EMAIL_PASS = st.secrets["EMAIL_PASS"]
+PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
 
 def get_pedidos_pooling(url, token):
     headers = {
