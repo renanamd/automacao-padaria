@@ -8,12 +8,20 @@ import pdfkit
 import requests
 import yagmail
 
-API_POOLING_URL = st.secrets["API_POOLING_URL"]
-API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
-CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
-EMAIL_USER = st.secrets["EMAIL_USER"]
-EMAIL_PASS = st.secrets["EMAIL_PASS"]
-PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
+# API_POOLING_URL = st.secrets["API_POOLING_URL"]
+# API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
+# CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
+# EMAIL_USER = st.secrets["EMAIL_USER"]
+# EMAIL_PASS = st.secrets["EMAIL_PASS"]
+# PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
+
+API_POOLING_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders"
+API_DETALHES_PEDIDO_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders/"
+CARDAPIO_API_TOKEN = "8d6mRcvSvtkBVCpUCGSrZ8rriFP35Hd2TvGNSnmG"
+EMAIL_USER = "renanalmeida2003@gmail.com"
+EMAIL_PASS = "bojjptclmviqipno"
+PRINTER_EMAIL = "orleypadaria@print.epsonconnect.com"
+
 
 def get_pedidos_pooling(url, token):
     headers = {
@@ -279,15 +287,14 @@ def html_to_pdf_api(html: str, output_path: str):
     response = requests.post(url, json=payload, headers=headers, stream=True)
 
 
-    # 2) Em caso de erro, imprime o corpo:
     if response.status_code != 200 or response.headers.get("Content-Type") != "application/pdf":
-        return
+        return None
+    return response.content
 
-    # 3) Gravação binária
-    with open(output_path, "wb") as f:
-        for chunk in response.iter_content(8192):
-            if chunk:
-                f.write(chunk)
+    # with open(output_path, "wb") as f:
+    #     for chunk in response.iter_content(8192):
+    #         if chunk:
+    #             f.write(chunk)
 
 # def baixar_html_to_pdf(html: str) -> bytes | None:
     
@@ -390,36 +397,29 @@ if modal.is_open():
 
         with col1:
             st.subheader("📥 Baixar PDF")
-            if st.button("Gerar e Baixar PDF"):
-                with st.spinner("Gerando o PDF para download..."):
+            # if st.button("Gerar e Baixar PDF"):
+            with st.spinner("Gerando o PDF para download..."):
                     tabela_html = gerar_tabela_html(df_pedidos)
                     html_geral = gerar_html(tabela_html)                    
                     gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
-                    
-                    if gerar_pdf is None:
-                        st.error("❌ Não foi possível realizar o download")
-                    else:
-                    
-                        hoje = date.today().strftime("%d/%m/%Y")
-                        
-                        nome_pdf = f"relatorio_pedidos_{hoje}.pdf"         
-                        b64 = base64.b64encode(gerar_pdf).decode('utf-8')
-                        href = f'''
-                        <a download="{nome_pdf}" href="data:application/pdf;base64,{b64}" id="download-link"></a>
-                        <script>document.getElementById("download-link").click();</script>
-                        '''
-                        st.components.v1.html(href, height=0, width=0)
+                    hoje = date.today().strftime("%d%m%Y")
+                    nome_pdf = f"relatorio_pedidos_{hoje}.pdf"
 
-                        st.success("✅ O download foi iniciado!")
+                    st.download_button(
+                        label="Baixar PDF",
+                        data=gerar_pdf,
+                        file_name=nome_pdf,
+                        mime="application/pdf"
+                    )
                     
             
         with col2:
             st.subheader("🖨️ Enviar para Impressão")
             if st.button("Enviar para Impressora"):
-                with st.spinner("Enviando email para impressora..."):
+                with st.spinner("Enviando e-mail para impressora..."):
                     tabela_html = gerar_tabela_html(df_pedidos)
                     html_geral = gerar_html(tabela_html)
-                    gerar_pdf = html_to_pdf_api(html_geral)
+                    gerar_pdf = html_to_pdf_api(html_geral,"relatorio_pedidos.pdf")
                     impressao = enviar_para_impressao()
                     if impressao:
                         st.success("✅ PDF enviado para impressão!")

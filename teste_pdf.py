@@ -28,5 +28,41 @@ def html_to_pdf_api(html: str, output_path: str):
                 f.write(chunk)
 
 # Uso
-html = "<h1>aaaaaaaaaaaaaaaaa</h1><p>PDF via API</p>"
+html = f"""
+    
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <style>
+            table{{
+                border-collapse: collapse;
+                justify-content: stretch;
+                text-align: left;
+            }}
+            thead{{
+                align-items: left;
+            }}
+
+            th, td{{
+                padding: 8px;
+            }}
+            
+        </style>
+    </head>
+
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    
+    <h1 style="font-size: 24px">Pedidos data_hoje</h1>
+    
+    tabela_final
+        
+    </body>
+
+    </html>    
+    
+    """
 html_to_pdf_api(html, "meu_relatorio.pdf")
