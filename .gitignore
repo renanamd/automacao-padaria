@@ -4,8 +4,6 @@ usuarios.yaml
 
 secret.txt
 
-estoque.csv
-
 gerar_hash_senha.py
 
 teste.py
