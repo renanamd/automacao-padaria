@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 import yagmail
 from io import BytesIO
+import time
 
 API_POOLING_URL = st.secrets["API_POOLING_URL"]
 API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
@@ -12,6 +13,16 @@ CARDAPIO_API_TOKEN = st.secrets["CARDAPIO_API_TOKEN"]
 EMAIL_USER = st.secrets["EMAIL_USER"]
 EMAIL_PASS = st.secrets["EMAIL_PASS"]
 PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
+X_API_KEY_WAHA = st.secrets["X_API_KEY_WAHA"]
+
+# API_POOLING_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders"
+# API_DETALHES_PEDIDO_URL = "https://integracao.cardapioweb.com/api/partner/v1/orders/"
+# CARDAPIO_API_TOKEN = "8d6mRcvSvtkBVCpUCGSrZ8rriFP35Hd2TvGNSnmG"
+# EMAIL_USER = "renanalmeida2003@gmail.com"
+# EMAIL_PASS = "bojjptclmviqipno"
+# PRINTER_EMAIL = "orleypadaria@print.epsonconnect.com"
+# X_API_KEY_WAHA = "orleypaes"
+
 
 def get_pedidos_pooling(url, token):
     headers = {
@@ -46,11 +57,7 @@ def get_detalhes_pedido(url, order_ids, token):
             detalhes.append(detalhe_json)
         except Exception as e:
             print(f"Erro ao buscar detalhes do pedido {oid}: {e}")
-            # Caso queira manter um registro mesmo em erro, poderia fazer:
-            # detalhes.append({"id": oid, "error": str(e)})
             continue
-        
-    # print(detalhes)
     return detalhes
 
 
@@ -295,7 +302,6 @@ def enviar_para_impressao(pdf_bytes: bytes, copies: int) -> bool:
         print(f"Falha ao enviar para a impressora: {e}")
         return False
 
-
 def rodar_fluxo_cobranca_clientes():
     
     url = "http://localhost:5678/webhook/5ecdd0d8-0bc1-4faf-ae7e-d0a5a5a447d9"
@@ -306,41 +312,105 @@ def rodar_fluxo_cobranca_clientes():
     
     return status
 
+def get_status_sessao():
+    url = "http://147.182.246.108:3000/api/sessions/default"
+    
+    headers = {
+        "x-api-key": X_API_KEY_WAHA,
+    } 
+    
+    response = requests.get(url,headers)
+    
+    data = response.json()
+    
+    status = data.get("status")
+    
+    return status
+
+def ativar_sessoes():
+    url = "http://147.182.246.108:3000/api/sessions/default/start"
+    
+    headers = {
+        "x-api-key": X_API_KEY_WAHA,
+    } 
+    
+    response = requests.post(url,headers)
+    
+    status_code = response.status_code
+    
+    return status_code
+    
+def salvar_alteracoes_estoque(df: pd.DataFrame) -> bool:
+    try:
+        df.to_csv("estoque.csv", index=False)
+        
+        return True
+    
+    except Exception as e:
+        print(f"Falha na atualização dos dados: {e}")
+        return False
+
+def enviar_estoque_para_email(pdf_bytes: bytes) -> bool:
+    
+    agora = datetime.now()        
+    agora_formatado = agora.strftime("%d/%m/%Y %H:%M")
+        
+    try:
+        yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
+
+        assunto = f"Att. de Estoque"
+
+        buf = BytesIO(pdf_bytes)
+        buf.name = f"estoque_{agora_formatado}.pdf"
+
+        yag.send(
+            to="renanalmeida2003@gmail.com",
+            subject=assunto,
+            contents=f"O estoque foi atualizado as {agora_formatado}",
+            attachments=[buf]
+        )
+
+        return True
+
+    except Exception as e:
+        print(f"Falha ao enviar para a impressora: {e}")
+        return False
+
+
+def callback_ligar_instancia():
+    st.session_state.ativando_instancia = True
+    ativar_sessoes()
+    
+    time.sleep(5)
+    
+    st.session_state.status_instancia = get_status_sessao()
+    st.session_state.ativando_instancia = False
+    
+    st.rerun()
+
 
 st.title("🍞 Orley Pães Artesanais")
 st.subheader("Escolha o que deseja fazer:")
 
 # Instancia o modal
-modal = Modal(
+modal_pedidos = Modal(
     "📝 Revise os Pedidos",
     key="revisar-pedidos",
     padding=20,
     max_width=900,
 )
 
-
-# with col1:
 if st.button("📝 Gerar Lista de Pedidos", type="primary", use_container_width=True):   
-    modal.open()
+    modal_pedidos.open()
         
-# with col2:
-if st.button("💸 Cobrança de Clientes",  type="primary", use_container_width=True): 
-    with st.spinner("O fluxo está em execução..."):
-        status = rodar_fluxo_cobranca_clientes()
-        
-    if status == 308:
-        st.success("✅ A cobrança automática de clientes foi concluída com sucesso.")  
-    else:  
-        st.error("❌ Falha na execução do fluxo")
-
-if modal.is_open():
+if modal_pedidos.is_open():
     ids = get_pedidos_pooling(API_POOLING_URL, CARDAPIO_API_TOKEN)
     detalhes = get_detalhes_pedido(API_DETALHES_PEDIDO_URL, ids, CARDAPIO_API_TOKEN)
     parsed = [parse_order_details(d) for d in detalhes]
     df_pedidos = montar_tabela_pedidos(parsed)
     
     
-    with modal.container():
+    with modal_pedidos.container():
         st.dataframe(df_pedidos, use_container_width=True)
 
         st.markdown("---")
@@ -389,8 +459,87 @@ if modal.is_open():
                             if impressao == True:
                                 st.success(f"✅ PDF enviado para impressão! N° Cópias: {copies}")
                             else:
-                                st.error("❌ Falha ao enviar para a impressora.")
+                                st.error("❌ Falha ao enviar para a impressora")
 
-        st.markdown("---")
-        if st.button("Fechar"):
-            modal.close()
+modal_cobranca = Modal(
+    "💸 Cobrança de Clientes",
+    key="cobranca-clientes",
+    padding=20,
+    max_width=900,
+)
+
+if st.button("💸 Cobrança de Clientes",  type="primary", use_container_width=True): 
+    modal_cobranca.open()
+    
+if "status_instancia" not in st.session_state:
+    st.session_state.status_instancia = get_status_sessao()
+if "ativando_instancia" not in st.session_state:
+    st.session_state.ativando_instancia = False
+
+if modal_cobranca.is_open():
+    with modal_cobranca.container():
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Status da Instância")
+
+            # Se estamos no meio de ativação, exibe spinner
+            if st.session_state.ativando_instancia:
+                with st.spinner("🔄 Ativando instância…"):
+                    # só o spinner, a callback já foi disparada no click
+                    pass
+
+            # Depois que parar de ativar, exibimos o status
+            status = st.session_state.status_instancia
+            if status == "WORKING":
+                st.success("✅ Instância está ativa!")
+                # Botão de envio de cobrança fica aqui
+                if st.button("📲 Enviar cobrança para os clientes", use_container_width=True, type="primary"):
+                    with st.spinner("⌛️ Disparando cobranças…"):
+                        rodar_fluxo_cobranca_clientes()
+                    st.success("✅ Cobranças enviadas!")
+            else:
+                st.error("❌ Instância desligada.\nUse o botão ao lado para ligar.")
+
+        with col2:
+            st.subheader("Ações")
+            # Botão que dispara o callback
+            st.button(
+                "🔌 Ligar Instância",
+                on_click=callback_ligar_instancia,
+                disabled=st.session_state.ativando_instancia,
+                use_container_width=True,
+                type="primary"
+            )
+            st.link_button("Verificar instância no WAHA", "http://147.182.246.108:3000/dashboard/", type="secondary", use_container_width=True)
+            
+
+modal_estoque = Modal(
+    "📦 Gerenciamento do Estoque",
+    key="estoque",
+    padding=20,
+    max_width=900,
+)
+
+if st.button("📦 Gerenciamento do Estoque",  type="primary", use_container_width=True): 
+    modal_estoque.open()
+    
+if modal_estoque.is_open():
+    with modal_estoque.container():
+        
+        df_estoque = pd.read_csv("estoque.csv")        
+        df_editado = st.data_editor(df_estoque, hide_index=True)
+        
+        if st.button("💾 Salvar Alterações", type="primary", use_container_width=True):
+            with st.spinner("Salvando estoque..."):
+                save = salvar_alteracoes_estoque(df_editado)
+                df_html = df_editado.to_html(escape=False, classes="table", index=False)
+                # pdf = html_to_pdf_api(df_html,"")
+                # envio_email = enviar_estoque_para_email(pdf)
+                if save:
+                    st.success("✅ Estoque atualizado e e-mail enviado")
+                else:
+                    st.error("❌ Não foi possível atualizar o estoque")
+                
+        
+        
