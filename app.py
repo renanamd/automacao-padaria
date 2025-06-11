@@ -6,8 +6,6 @@ import requests
 import yagmail
 from io import BytesIO
 import time
-from streamlit_extras.row import row
-import numpy as np
 
 API_POOLING_URL = st.secrets["API_POOLING_URL"]
 API_DETALHES_PEDIDO_URL = st.secrets["API_DETALHES_PEDIDO_URL"]
