@@ -14,6 +14,7 @@ EMAIL_USER = st.secrets["EMAIL_USER"]
 EMAIL_PASS = st.secrets["EMAIL_PASS"]
 PRINTER_EMAIL = st.secrets["PRINTER_EMAIL"]
 X_API_KEY_WAHA = st.secrets["X_API_KEY_WAHA"]
+IP = st.secrets["IP"]
 
 def get_pedidos_pooling(url, token):
     headers = {
@@ -186,64 +187,10 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
     ])
      
     # df_pedidos_menu[["Nome Cliente","Telefone", "Produtos", "Rua", "Número", "Bairro", "Complemento", "Referência"]]
+    # df_pedidos_menu[["Nome Cliente", "Produtos"]]
     # df_pedidos_menu[["Nome Cliente","Telefone", "Produtos HTML", "Rua", "Número", "Bairro", "Complemento", "Referência"]]
      
     return df  
-
-def montar_tabela_pedidos_menu(detalhes_pedidos: list) -> pd.DataFrame:
-    registros = []
-
-    for parsed in detalhes_pedidos:
-        status     = parsed.get("status", "") or ""
-        
-        if status.lower() != "confirmed":
-            continue
-        
-        # 1) Extrai nome e telefone (já filtrados)
-        nome_cliente = parsed.get("customer_name", "") or ""
-
-        # 2) Monta a lista de “Produtos” a partir do parsed['items']
-        produtos_lista = []
-        items = parsed.get("items") or []
-
-        for item in items:
-            # Cada item já é um dict com estas chaves:
-            #   'item_name', 'item_quantity', 'item_unit_price', 'item_total_price', 'item_options'
-            nome_item = item.get("item_name", "") or ""
-            qtd_item  = item.get("item_quantity", 0) or 0
-            options   = item.get("item_options") or []
-
-            if isinstance(options, list) and options:
-                # Se houver opções dentro do item, use-as no lugar do item_name
-                for opt in options:
-                    nome_opt = opt.get("option_name", "") or ""
-                    qtd_opt  = opt.get("option_quantity", 0) or 0
-                    try:
-                        qtd_opt_int = int(qtd_opt)
-                    except (TypeError, ValueError):
-                        qtd_opt_int = 0
-                    if nome_opt.strip() != "":
-                        produtos_lista.append(f"{qtd_opt_int}x {nome_opt}")
-            else:
-                # Caso não tenha opções, considere o próprio item normal
-                try:
-                    qtd_item_int = int(qtd_item)
-                except (TypeError, ValueError):
-                    qtd_item_int = 0
-                if nome_item.strip() != "":
-                    produtos_lista.append(f"{qtd_item_int}x {nome_item}")
-
-
-        produtos_str   = " | ".join(produtos_lista)
-        produtos_str_html = "<br>".join(produtos_lista)
-
-        registros.append({
-            "Cliente":         nome_cliente,
-            "Produtos":        produtos_str,
-            "Produtos (HTML)": produtos_str_html
-        })
-
-    return pd.DataFrame(registros, columns=["Cliente","Produtos","Produtos (HTML)"])
 
 def gerar_tabela_html (df: pd.DataFrame) -> str:
     
@@ -258,8 +205,8 @@ def gerar_html(tabela_html):
     data_hoje = datetime.now().strftime("%d/%m/%Y")
     
     tabela_final = (
-    tabela_html
-    .replace('style="text-align: right;"', 'style="text-align: left;"')
+        tabela_html
+        .replace('style="text-align: right;"', 'style="text-align: left;"')
     )
     
     
@@ -303,7 +250,7 @@ def gerar_html(tabela_html):
     
     return html
     
-def html_to_pdf_api(html: str, output_path: str):
+def html_to_pdf_api(html: str):
     url = "https://yakpdf.p.rapidapi.com/pdf"
     payload = {
         "source": { "html": html },
@@ -339,7 +286,7 @@ def enviar_para_impressao(pdf_bytes: bytes, copies: int) -> bool:
             buf.name = f"relatorio_pedidos_{copy}.pdf"
 
             yag.send(
-                to="renanalmeida2003@gmail.com",
+                to=PRINTER_EMAIL,
                 subject=assunto,
                 contents=f"Segue em anexo a cópia {copy} de {copies + 1} dos pedidos de hoje.",
                 attachments=[buf]
@@ -353,16 +300,14 @@ def enviar_para_impressao(pdf_bytes: bytes, copies: int) -> bool:
 
 def rodar_fluxo_cobranca_clientes():
     
-    url = "http://localhost:5678/webhook/5ecdd0d8-0bc1-4faf-ae7e-d0a5a5a447d9"
+    url = f"{IP}5678/webhook/orleypaesartesanais"
     
-    response = requests.get(url)
+    response = requests.get(url)       
     
-    status = response.status_code        
-    
-    return status
+    return response.status_code
 
 def get_status_sessao():
-    url = "http://147.182.246.108:3000/api/sessions/default"
+    url = f"{IP}3000/api/sessions/default"
     
     headers = {
         "x-api-key": X_API_KEY_WAHA,
@@ -377,7 +322,7 @@ def get_status_sessao():
     return status
 
 def ativar_sessoes():
-    url = "http://147.182.246.108:3000/api/sessions/default/start"
+    url = f"{IP}3000/api/sessions/default/start"
     
     headers = {
         "x-api-key": X_API_KEY_WAHA,
@@ -420,7 +365,33 @@ def enviar_estoque_para_email(tabela_estoque:str) -> bool:
     except Exception as e:
         print(f"Falha ao enviar para a impressora: {e}")
         return False
-
+    
+def montar_card_html(idx: int, nome: str, produtos_html: str) -> str:
+    return f"""
+    <div style="
+        border:1px solid #506d2b;
+        border-radius:8px;
+        padding:1rem;
+        margin-bottom:1rem;
+        background:#f2ebde;
+    ">
+      <h5 style="margin:0 0 0.5rem 0; color:#506d2b;">
+        <span style="font-size:16px">{idx}.</span> {nome}
+      </h5>
+      <p style="margin:0; line-height:1.4;">
+        {produtos_html}
+      </p>
+    </div>
+    """
+    
+def renderizar_cards(df_cards: pd.DataFrame, cols_per_row: int = 2):
+    cols = st.columns(cols_per_row)
+    for idx, row in df_cards.iterrows():
+        col = cols[idx % cols_per_row]
+        nome = row["Nome Cliente"]
+        html = row["Produtos HTML"]
+        with col:
+            st.markdown(montar_card_html(idx+1, nome, html), unsafe_allow_html=True)
 
 def callback_ligar_instancia():
     st.session_state.ativando_instancia = True
@@ -431,56 +402,47 @@ def callback_ligar_instancia():
     st.session_state.status_instancia = get_status_sessao()
     st.session_state.ativando_instancia = False
     
-    st.rerun()
+    
+@st.cache_data(ttl=300, show_spinner="Carregando pedidos...")
+def captar_e_tratar_pedidos():
+    ids      = get_pedidos_pooling(API_POOLING_URL, CARDAPIO_API_TOKEN)
+    detalhes = get_detalhes_pedido(API_DETALHES_PEDIDO_URL, ids, CARDAPIO_API_TOKEN)
+    return [parse_order_details(d) for d in detalhes]
 
 
 st.title("🍞 Orley Pães Artesanais")
-st.subheader("Escolha o que deseja fazer:")
 
-ids = get_pedidos_pooling(API_POOLING_URL, CARDAPIO_API_TOKEN)
-detalhes = get_detalhes_pedido(API_DETALHES_PEDIDO_URL, ids, CARDAPIO_API_TOKEN)
-parsed = [parse_order_details(d) for d in detalhes]
-df_pedidos_menu = montar_tabela_pedidos_menu(parsed)
+parsed = captar_e_tratar_pedidos()
+df_pedidos_menu = montar_tabela_pedidos(parsed)
 
+data_hoje    = datetime.now().strftime("%d/%m/%Y")
 
-with st.expander("Pedidos de Hoje", expanded=True,):
+with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     col1, col2 = st.columns([10,4])
     with col1:
-        if st.button("🔄 Atualizar"):
-            st.rerun()
-    with col2:
-        visao = st.radio("A",
-            options=["Cards","Tabela"],
-            index=0,                        
-            label_visibility="collapsed",
-            horizontal=True
-        )
+        with st.form("form_atualiza_pedidos", border=False):
+            atualizar = st.form_submit_button("🔄 Atualizar")
+                # st.rerun()
+        with col2:
+            visao = st.radio("A",
+                options=["Cards","Tabela"],
+                index=0,                        
+                label_visibility="collapsed",
+                horizontal=True
+            )
+    if atualizar:
+        captar_e_tratar_pedidos.clear()  # invalida o cache
+        st.rerun()
+        
+    parsed     = captar_e_tratar_pedidos()  # também cacheado
+    df_pedidos = montar_tabela_pedidos(parsed)
         
     if visao == "Cards":
-        cols = st.columns(2)
-        for idx, row in df_pedidos_menu.iterrows():
-            nome = row.get("Cliente", "—")
-            prod = row.get("Produtos (HTML)", "")
-            col = cols[idx % 2]
-            with col:
-                st.markdown(
-                    f"""
-                    <div style="
-                        border:1px solid #506d2b; 
-                        border-radius:8px; 
-                        padding:1rem; 
-                        margin-bottom:1rem;
-                        background:#f2ebde;
-                    ">
-                    <h5 style="margin:0 0 0.5rem 0; color:#506d2b; padding: 0;><span style="font-size: 16px">{idx + 1}. </span>{nome}</h5>
-                    <p style="margin:0;">{prod}</p>
-                    </div>  
-                    """,
-                    unsafe_allow_html=True
-                )
+        renderizar_cards(df_pedidos)
     else:
-        st.dataframe(df_pedidos_menu[["Cliente","Produtos"]])
+        st.dataframe(df_pedidos_menu[["Nome Cliente","Produtos"]], use_container_width=True)
 
+st.subheader("Escolha o que deseja fazer:")
 # Instancia o modal
 modal_pedidos = Modal(
     "📝 Revise os Pedidos",
@@ -507,7 +469,7 @@ if modal_pedidos.is_open():
             st.write("Clique no botão abaixo para fazer o download")
             tabela_html = gerar_tabela_html(df_pedidos[["Nome Cliente","Telefone", "Produtos HTML", "Rua", "Número", "Bairro", "Complemento", "Referência"]])
             html_geral = gerar_html(tabela_html)                    
-            gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
+            gerar_pdf = html_to_pdf_api(html_geral)
             hoje = date.today().strftime("%d/%m/%Y")
             nome_pdf = f"relatorio_pedidos_{hoje}.pdf"
 
@@ -537,7 +499,7 @@ if modal_pedidos.is_open():
                         with st.spinner("Enviando e-mail para impressora..."):
                             tabela_html = gerar_tabela_html(df_pedidos)
                             html_geral = gerar_html(tabela_html)                    
-                            gerar_pdf = html_to_pdf_api(html_geral, "relatorio_pedidos.pdf")
+                            gerar_pdf = html_to_pdf_api(html_geral)
                             impressao = enviar_para_impressao(gerar_pdf,copies=copies)
                             if impressao == True:
                                 st.success(f"✅ PDF enviado para impressão! N° Cópias: {copies}")
@@ -579,10 +541,13 @@ if modal_cobranca.is_open():
                 # Botão de envio de cobrança fica aqui
                 if st.button("📲 Enviar cobrança para os clientes", use_container_width=True, type="primary"):
                     with st.spinner("⌛️ Disparando cobranças…"):
-                        rodar_fluxo_cobranca_clientes()
-                    st.success("✅ Cobranças enviadas!")
+                        status = rodar_fluxo_cobranca_clientes()
+                        if status == 308:
+                            st.success("✅ A cobrança foi concluída com sucesso")
+                        else: 
+                            st.error("❌ Não foi possível enviar as mensagens de cobrança")
             else:
-                st.error("❌ Instância desligada.\nUse o botão ao lado para ligar.")
+                st.error("❌ Instância desligada. Use o botão ao lado para ligar")
 
         with col2:
             st.subheader("Ações")
@@ -594,7 +559,7 @@ if modal_cobranca.is_open():
                 use_container_width=True,
                 type="primary"
             )
-            st.link_button("Verificar instância no WAHA", "http://147.182.246.108:3000/dashboard/", type="secondary", use_container_width=True)
+            st.link_button("Verificar instância no WAHA", f"{IP}3000/dashboard/", type="secondary", use_container_width=True)
             
 
 modal_estoque = Modal(
