@@ -187,7 +187,7 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
             "Bairro":       bairro,
             "Complemento":  complemento,
             "Referência":   referencia,
-            # "Status": definir_status()
+            "Status": definir_status(rua)
         })
 
     df = pd.DataFrame(registros, columns=[
@@ -375,7 +375,7 @@ def enviar_estoque_para_email(tabela_estoque:str) -> bool:
         print(f"Falha ao enviar para a impressora: {e}")
         return False
     
-def montar_card_html(idx: int, nome: str, produtos_html: str) -> str:
+def montar_card_html(idx: int, nome: str, produtos_html: str, status: str) -> str:
     return f"""
     <div style="
         border:1px solid #506d2b;
@@ -385,6 +385,7 @@ def montar_card_html(idx: int, nome: str, produtos_html: str) -> str:
         background:#f2ebde;
     ">
       <h5 style="margin:0 0 0.5rem 0; color:#506d2b;">{nome}</h5>
+      <h6 style="margin:0 0 0.1rem 0; color:#506d2b;">{status}</h6>
       <p style="margin:0; line-height:1.4;">
         {produtos_html}
       </p>
@@ -397,9 +398,9 @@ def renderizar_cards(df_cards: pd.DataFrame, cols_per_row: int = 2):
         col = cols[idx % cols_per_row]
         nome = row["Nome Cliente"]
         html = row["Produtos HTML"]
-        # status = row["Status"]
+        status = row["Status"]
         with col:
-            st.markdown(montar_card_html(idx+1, nome, html), unsafe_allow_html=True)
+            st.markdown(montar_card_html(idx+1, nome, html, status), unsafe_allow_html=True)
 
 def callback_ligar_instancia():
     st.session_state.ativando_instancia = True
