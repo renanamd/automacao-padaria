@@ -385,7 +385,7 @@ def montar_card_html(idx: int, nome: str, produtos_html: str, status: str) -> st
         background:#f2ebde;
     ">
       <h5 style="color: #506d2b; padding: 6px 0">{nome}</h5>
-      <h6 style="margin: 0 0 0.2rem 0; color: #506d2b; padding: 0">{status}</h6>
+      <h6 style="margin: 0.2rem 0; color: #506d2b; padding: 0">{status}</h6>
       <p style="margin: 0; line-height: 1.4;">
         {produtos_html}
       </p>
