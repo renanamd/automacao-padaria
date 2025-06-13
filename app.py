@@ -157,7 +157,7 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
                 except (TypeError, ValueError):
                     qtd_item_int = 0
                 if nome_item.strip() != "":
-                    produtos_lista.append(f"{qtd_item_int}x {nome_item}")
+                    produtos_lista.append(f"{qtd_item_int} {nome_item}")
 
         produtos_str   = " | ".join(produtos_lista)
         produtos_str_html = "<br>".join(produtos_lista)
@@ -190,7 +190,7 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
     # df_pedidos_menu[["Nome Cliente", "Produtos"]]
     # df_pedidos_menu[["Nome Cliente","Telefone", "Produtos HTML", "Rua", "Número", "Bairro", "Complemento", "Referência"]]
      
-    return df  
+    return df.sort_values("Bairro")
 
 def gerar_tabela_html (df: pd.DataFrame) -> str:
     
