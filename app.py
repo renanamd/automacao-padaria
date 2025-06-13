@@ -168,6 +168,14 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
         bairro      = parsed.get("delivery_address_neighborhood", "") or "RETIRADA"
         complemento = parsed.get("delivery_address_complement", "") or ""
         referencia  = parsed.get("delivery_address_reference", "") or ""
+        
+        def definir_status(rua: str):
+            if rua != "RETIRADA":
+                status = "ENTREGA"
+            else:
+                status = "RETIRADA"
+        
+            return status
 
         registros.append({
             "Nome Cliente": nome_cliente,
@@ -178,12 +186,13 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
             "Número":       numero,
             "Bairro":       bairro,
             "Complemento":  complemento,
-            "Referência":   referencia
+            "Referência":   referencia,
+            "Status": definir_status()
         })
 
     df = pd.DataFrame(registros, columns=[
         "Nome Cliente", "Telefone", "Produtos", "Produtos HTML",
-        "Rua", "Número", "Bairro", "Complemento", "Referência"
+        "Rua", "Número", "Bairro", "Complemento", "Referência", "Status"
     ])
      
     # df_pedidos_menu[["Nome Cliente","Telefone", "Produtos", "Rua", "Número", "Bairro", "Complemento", "Referência"]]
@@ -366,7 +375,7 @@ def enviar_estoque_para_email(tabela_estoque:str) -> bool:
         print(f"Falha ao enviar para a impressora: {e}")
         return False
     
-def montar_card_html(idx: int, nome: str, produtos_html: str) -> str:
+def montar_card_html(idx: int, nome: str, produtos_html: str, status: str) -> str:
     return f"""
     <div style="
         border:1px solid #506d2b;
@@ -375,23 +384,23 @@ def montar_card_html(idx: int, nome: str, produtos_html: str) -> str:
         margin-bottom:1rem;
         background:#f2ebde;
     ">
-      <h5 style="margin:0 0 0.5rem 0; color:#506d2b;">
-        <span style="font-size:16px">{idx}.</span> {nome}
-      </h5>
+      <h5 style="margin:0 0 0.5rem 0; color:#506d2b;">{nome}</h5>
+      <h6 style="margin:0 0 0.2rem 0; color:#506d2b;">{status}</h6>
       <p style="margin:0; line-height:1.4;">
         {produtos_html}
       </p>
     </div>
     """
-    
+
 def renderizar_cards(df_cards: pd.DataFrame, cols_per_row: int = 2):
     cols = st.columns(cols_per_row)
     for idx, row in df_cards.iterrows():
         col = cols[idx % cols_per_row]
         nome = row["Nome Cliente"]
         html = row["Produtos HTML"]
+        status = row["Status"]
         with col:
-            st.markdown(montar_card_html(idx+1, nome, html), unsafe_allow_html=True)
+            st.markdown(montar_card_html(idx+1, nome, html, status), unsafe_allow_html=True)
 
 def callback_ligar_instancia():
     st.session_state.ativando_instancia = True
@@ -440,7 +449,7 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     if visao == "Cards":
         renderizar_cards(df_pedidos)
     else:
-        st.dataframe(df_pedidos_menu[["Nome Cliente","Produtos"]], use_container_width=True)
+        st.dataframe(df_pedidos_menu[["Nome Cliente","Produtos"]], use_container_width=True, hide_index=True)
 
 st.subheader("Escolha o que deseja fazer:")
 # Instancia o modal
