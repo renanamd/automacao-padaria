@@ -149,7 +149,7 @@ def montar_tabela_pedidos(detalhes_pedidos: list) -> pd.DataFrame:
                     except (TypeError, ValueError):
                         qtd_opt_int = 0
                     if nome_opt.strip() != "":
-                        produtos_lista.append(f"{qtd_opt_int}x {nome_opt}")
+                        produtos_lista.append(f"{qtd_opt_int} {nome_opt}")
             else:
                 # Caso não tenha opções, considere o próprio item normal
                 try:
