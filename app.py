@@ -446,7 +446,7 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     df_pedidos = montar_tabela_pedidos(parsed)
     qtd_pedidos = len(df_pedidos)
     
-    st.markdown(f"######{qtd_pedidos} Pedidos")
+    st.markdown(f"##### {qtd_pedidos} Pedidos")
         
     if visao == "Cards":
         renderizar_cards(df_pedidos)
