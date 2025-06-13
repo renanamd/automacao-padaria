@@ -439,11 +439,14 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
                 horizontal=True
             )
     if atualizar:
-        captar_e_tratar_pedidos.clear()  # invalida o cache
+        captar_e_tratar_pedidos.clear()  
         st.rerun()
         
-    parsed     = captar_e_tratar_pedidos()  # também cacheado
+    parsed     = captar_e_tratar_pedidos()
     df_pedidos = montar_tabela_pedidos(parsed)
+    qtd_pedidos = len(df_pedidos)
+    
+    st.markdown(f"######{qtd_pedidos} Pedidos")
         
     if visao == "Cards":
         renderizar_cards(df_pedidos)
