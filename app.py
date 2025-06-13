@@ -493,18 +493,19 @@ if modal_pedidos.is_open():
                         step=1,
                         label_visibility="collapsed"
                     )
-                with col2:
-                    submit = st.form_submit_button("Enviar para Impressora")
-                    if submit:
-                        with st.spinner("Enviando e-mail para impressora..."):
-                            tabela_html = gerar_tabela_html(df_pedidos)
-                            html_geral = gerar_html(tabela_html)                    
-                            gerar_pdf = html_to_pdf_api(html_geral)
-                            impressao = enviar_para_impressao(gerar_pdf,copies=copies)
-                            if impressao == True:
-                                st.success(f"✅ PDF enviado para impressão! N° Cópias: {copies}")
-                            else:
-                                st.error("❌ Falha ao enviar para a impressora")
+                with col2:  
+                    submit = st.form_submit_button("Enviar para Impressora", use_container_width=True)
+                    
+                if submit:
+                    with st.spinner("Enviando e-mail para impressora..."):
+                        tabela_html = gerar_tabela_html(df_pedidos)
+                        html_geral = gerar_html(tabela_html)                    
+                        gerar_pdf = html_to_pdf_api(html_geral)
+                        impressao = enviar_para_impressao(gerar_pdf,copies=copies)
+                    if impressao == True:
+                        st.success(f"✅ PDF enviado para impressão! N° Cópias: {copies}")
+                    else:
+                        st.error("❌ Falha ao enviar para a impressora")
 
 modal_cobranca = Modal(
     "💸 Cobrança de Clientes",
