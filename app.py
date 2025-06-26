@@ -424,7 +424,8 @@ st.title("🍞 Orley Pães Artesanais")
 parsed = captar_e_tratar_pedidos()
 df_pedidos_menu = montar_tabela_pedidos(parsed)
 
-data_hoje    = datetime.now().strftime("%d/%m/%Y")
+data_hoje = datetime.now().strftime("%d/%m/%Y")
+data_agora = datetime.now().strftime("%d/%m/%Y %H:%M")
 
 with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     col1, col2 = st.columns([10,4])
@@ -448,6 +449,7 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     qtd_pedidos = len(df_pedidos)
     
     st.markdown(f"##### {qtd_pedidos} Pedidos")
+    st.markdown(f"###### {data_agora}")
         
     if visao == "Cards":
         renderizar_cards(df_pedidos)
