@@ -426,7 +426,7 @@ parsed = captar_e_tratar_pedidos()
 df_pedidos_menu = montar_tabela_pedidos(parsed)
 
 data_hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y")
-data_agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
+hora_agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%H:%M")
 
 with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     col1, col2 = st.columns([10,4])
@@ -434,13 +434,14 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
         with st.form("form_atualiza_pedidos", border=False):
             atualizar = st.form_submit_button("🔄 Atualizar")
                 # st.rerun()
-        with col2:
-            visao = st.radio("A",
-                options=["Cards","Tabela"],
-                index=0,                        
-                label_visibility="collapsed",
-                horizontal=True
-            )
+    with col2:
+        visao = st.radio("A",
+            options=["Cards","Tabela"],
+            index=0,                        
+            label_visibility="collapsed",
+            horizontal=True
+        )
+        
     if atualizar:
         captar_e_tratar_pedidos.clear()  
         st.rerun()
@@ -453,8 +454,8 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     with col1:
         st.markdown(f"##### {qtd_pedidos} Pedidos")
 
-        with col2:
-            st.write(f"Atualizado as {data_agora}")
+    with col2:
+        st.write(f"Atualizado hoje as {hora_agora}")
         
     if visao == "Cards":
         renderizar_cards(df_pedidos)
