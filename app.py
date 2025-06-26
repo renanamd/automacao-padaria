@@ -212,7 +212,7 @@ def gerar_tabela_html (df: pd.DataFrame) -> str:
 
 def gerar_html(tabela_html):
     
-    data_hoje = datetime.now().strftime("%d/%m/%Y")
+    data_hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y")
     
     tabela_final = (
         tabela_html
@@ -283,7 +283,7 @@ def html_to_pdf_api(html: str):
 
 
 def enviar_para_impressao(pdf_bytes: bytes, copies: int) -> bool:
-    data_hoje    = datetime.now().strftime("%d/%m/%Y")
+    data_hoje    = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y")
     
     try:
         yag = yagmail.SMTP(EMAIL_USER, EMAIL_PASS)
@@ -356,7 +356,7 @@ def salvar_alteracoes_estoque(df: pd.DataFrame) -> bool:
 
 def enviar_estoque_para_email(tabela_estoque:str) -> bool:
     
-    agora = datetime.now()        
+    agora = datetime.now(ZoneInfo("America/Sao_Paulo"))        
     agora_formatado = agora.strftime("%d/%m/%Y %H:%M")
         
     try:
@@ -425,7 +425,7 @@ st.title("🍞 Orley Pães Artesanais")
 parsed = captar_e_tratar_pedidos()
 df_pedidos_menu = montar_tabela_pedidos(parsed)
 
-data_hoje = datetime.now().strftime("%d/%m/%Y")
+data_hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y")
 data_agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
 
 with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
@@ -449,8 +449,12 @@ with st.expander(f"Pedidos de Hoje - {data_hoje}", expanded=True,):
     df_pedidos = montar_tabela_pedidos(parsed)
     qtd_pedidos = len(df_pedidos)
     
-    st.markdown(f"##### {qtd_pedidos} Pedidos")
-    st.write(f"###### {data_agora}")
+    col1, col2 = st.columns([10,4])
+    with col1:
+        st.markdown(f"##### {qtd_pedidos} Pedidos")
+
+        with col2:
+            st.write(f"Atualizado as {data_agora}")
         
     if visao == "Cards":
         renderizar_cards(df_pedidos)
